@@ -16,7 +16,7 @@ fn main() {
 fn parse_args() -> Result<(String, String, String), std::io::Error> {
 
     let matches = App::new("RUSTY-GFM-HTML")
-        .version("1.0")
+        .version("0.1.0")
         .about("The Rusty Github Flavored Markdown HTML Generator!")
         .author("Nathaniel Graham <nathaniel.graham@protonmail.com>")
         .arg(Arg::with_name("infile")
