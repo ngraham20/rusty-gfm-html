@@ -79,6 +79,6 @@ fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std:
     let content = markdown_to_html(&markdown, &options);
     let html = header + &content + &footer;
 
-    std::fs::write(&outfile, &html).expect(&format!("Failed to write to {}", outfile));
+    std::fs::write(&outfile, &html)?;
     Ok(())
 }
