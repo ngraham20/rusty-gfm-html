@@ -1,6 +1,6 @@
 [package]
-name = "rusty-gfm-pdf"
-version = "0.1.0"
+name = "rusty-gfm-html"
+version = "0.1.1"
 authors = ["Nathaniel Graham <nathaniel.graham@protonmail.com>"]
 edition = "2018"
 
