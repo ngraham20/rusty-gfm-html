@@ -82,6 +82,12 @@ fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std:
     let mut options = ComrakOptions::default();
     options.render.github_pre_lang = true;
     options.render.unsafe_ = true;
+    options.extension.strikethrough = true;
+    options.extension.tagfilter = true;
+    options.extension.table = true;
+    options.extension.autolink = true;
+    options.extension.tasklist = true;
+    
     let content = markdown_to_html(&markdown, &options);
     let html = header + &content + &footer;
 
