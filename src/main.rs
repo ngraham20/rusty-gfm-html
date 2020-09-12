@@ -15,6 +15,12 @@ fn main() {
 
 fn parse_args() -> Result<(String, String, String), std::io::Error> {
 
+    // get the directory of the executable
+    let mut expath = std::env::current_exe()?;
+    expath.pop();
+    let stylepath = &format!("{}/styles.css", expath.to_str().unwrap());
+
+    // set up the application
     let matches = App::new("RUSTY-GFM-HTML")
         .version("0.1.0")
         .about("The Rusty Github Flavored Markdown HTML Generator!")
@@ -28,17 +34,18 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
             .long("outfile")
             .value_name("OUTFILE")
             .help("output file to save the generated html to")
-            .default_value("README.html")
+            .default_value("out.html")
             .takes_value(true))
         .arg(Arg::with_name("styles")
             .short("s")
             .long("styles")
             .value_name("STYLES")
             .help("The styles file to use")
-            .default_value("styles.css")
+            .default_value(stylepath)
             .takes_value(true))
         .get_matches();
     
+    // process arguments
     let mdfile = matches.value_of("infile").unwrap();
     let markdown = std::fs::read_to_string(&mdfile)?;
     let stfile = matches.value_of("styles").unwrap();
@@ -57,7 +64,6 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
 
 fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std::io::Error> {
 
-    let filename = "readme.md";
     let header = format!("
     <html>\n
     <head>\n
@@ -65,7 +71,7 @@ fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std:
     <meta name='viewport' content='width=device-width, initial-scale=1'>\n
     </head>\n
     <body>\n
-    <div id='content'>", filename);
+    <div id='content'>", outfile);
 
     let footer = format!("
     </div>\n
