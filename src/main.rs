@@ -1,5 +1,7 @@
 use comrak::{markdown_to_html, ComrakOptions};
 use clap::{Arg, App};
+use regex::Regex;
+use base64::encode;
 
 fn main() {
     match parse_args() {    
@@ -62,6 +64,21 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
     Ok((markdown, styles, outfile))
 }
 
+fn parse_html(html: &String) -> Result<(), std::io::Error> {
+    let mut images: Vec<String> = vec![];
+    let re = Regex::new(r#"<img src="(?P<filepath>.*?)".*>"#).unwrap();
+    for caps in re.captures_iter(&html) {
+        println!("Captured image: {:?}", &caps["filepath"]);
+        images.push(caps["filepath"].to_owned());
+    }
+    for img in images.iter() {
+        let imgstr = std::fs::read_to_string(img)?;
+        let b64str = format!("data:image/png;base64,{}",base64::encode(imgstr));
+        
+    }
+    Ok(())
+}
+
 fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std::io::Error> {
 
     let header = format!("
@@ -90,6 +107,8 @@ fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std:
     
     let content = markdown_to_html(&markdown, &options);
     let html = header + &content + &footer;
+
+    parse_html(&html);
 
     std::fs::write(&outfile, &html)?;
     Ok(())

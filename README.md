@@ -24,3 +24,21 @@ To display the program usage, open a terminal and type
 ```bash
 rusty-gfm-html --help
 ```
+
+
+```html
+<img src="izengard.gif" alt="They're taking the hobbits to" />
+```
+
+
+## Test
+
+![What do your elf eyes see](legolas.gif)
+![They're taking the hobbits to](izengard.gif)
+
+```python
+def make_haiku():
+    for i in range(10):
+        print("This is my hello world")
+    # No semicolons
+```
