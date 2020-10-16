@@ -1,7 +1,10 @@
+use regex::Captures;
+use std::io::Read;
 use comrak::{markdown_to_html, ComrakOptions};
 use clap::{Arg, App};
 use regex::Regex;
-use base64::encode;
+use std::path::Path;
+use std::ffi::OsStr;
 
 fn main() {
     match parse_args() {    
@@ -65,17 +68,20 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
 }
 
 fn parse_html(html: &String) -> Result<(), std::io::Error> {
-    let mut images: Vec<String> = vec![];
-    let re = Regex::new(r#"<img src="(?P<filepath>.*?)".*>"#).unwrap();
-    for caps in re.captures_iter(&html) {
+    let re = Regex::new(r#"(?P<before><img src=")(?P<filepath>.*?)(?P<after>".*>)"#).unwrap();
+    let result = re.replace_all(&html, |caps: &Captures| {
         println!("Captured image: {:?}", &caps["filepath"]);
-        images.push(caps["filepath"].to_owned());
-    }
-    for img in images.iter() {
-        let imgstr = std::fs::read_to_string(img)?;
-        let b64str = format!("data:image/png;base64,{}",base64::encode(imgstr));
-        
-    }
+        let img = caps["filepath"].to_owned();
+        let filetype = Path::new(&img)
+        .extension()
+        .and_then(OsStr::to_str).unwrap();
+        println!("{}", img);
+        let mut f = std::fs::File::open(&img).unwrap();
+        let mut buffer = Vec::new();
+        f.read_to_end(&mut buffer).unwrap();
+        format!("{}data:image/{};base64,{}{}",&caps["before"], filetype, base64::encode(buffer), &caps["after"])
+    });
+    std::fs::write("test.html", &result.as_ref())?;
     Ok(())
 }
 
