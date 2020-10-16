@@ -8,8 +8,8 @@ use std::ffi::OsStr;
 
 fn main() {
     match parse_args() {    
-        Ok((markdown, styles, outfile)) => { 
-            match convert(markdown, styles, outfile) {
+        Ok((markdown, styles, outfile, embed_images)) => { 
+            match convert(markdown, styles, outfile, embed_images) {
                 Ok(_) => {},
                 Err(message) => println!("{}", message)
             }
@@ -18,7 +18,7 @@ fn main() {
     }
 }
 
-fn parse_args() -> Result<(String, String, String), std::io::Error> {
+fn parse_args() -> Result<(String, String, String, bool), std::io::Error> {
 
     // get the directory of the executable
     let mut expath = std::env::current_exe()?;
@@ -48,6 +48,12 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
             .help("The styles file to use")
             .default_value(stylepath)
             .takes_value(true))
+        .arg(Arg::with_name("embed_images")
+            .short("e")
+            .long("embed-images")
+            .value_name("EMBED_IMAGES")
+            .help("Embed images directly into the output html with base64 encoding. This drastically increases the size of the document, but removes the need to distribute image assets along with it.")
+            .takes_value(false))
         .get_matches();
     
     // process arguments
@@ -56,6 +62,7 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
     let stfile = matches.value_of("styles").unwrap();
     let styles = std::fs::read_to_string(stfile)?;
     let outfile = String::from(matches.value_of("outfile").unwrap());
+    let embed_images = matches.is_present("embed_images");
     
     // TODO fix error handeling
     // match (markdown, styles, outfile) {
@@ -64,10 +71,10 @@ fn parse_args() -> Result<(String, String, String), std::io::Error> {
     //     (_, Err(st), _) => Err(st)
     // }
 
-    Ok((markdown, styles, outfile))
+    Ok((markdown, styles, outfile, embed_images))
 }
 
-fn parse_html(html: &String) -> Result<(), std::io::Error> {
+fn embed_html(html: &String) -> Result<String, std::io::Error> {
     let re = Regex::new(r#"(?P<before><img src=")(?P<filepath>.*?)(?P<after>".*>)"#).unwrap();
     let result = re.replace_all(&html, |caps: &Captures| {
         println!("Captured image: {:?}", &caps["filepath"]);
@@ -81,11 +88,10 @@ fn parse_html(html: &String) -> Result<(), std::io::Error> {
         f.read_to_end(&mut buffer).unwrap();
         format!("{}data:image/{};base64,{}{}",&caps["before"], filetype, base64::encode(buffer), &caps["after"])
     });
-    std::fs::write("test.html", &result.as_ref())?;
-    Ok(())
+    Ok(String::from(result.as_ref()))
 }
 
-fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std::io::Error> {
+fn convert(markdown: String, styles: String, outfile: String, embed_images: bool) -> Result<(), std::io::Error> {
 
     let header = format!("
     <html>\n
@@ -112,9 +118,11 @@ fn convert(markdown: String, styles: String, outfile: String) -> Result<(), std:
     options.extension.tasklist = true;
     
     let content = markdown_to_html(&markdown, &options);
-    let html = header + &content + &footer;
+    let mut html = header + &content + &footer;
 
-    parse_html(&html);
+    if embed_images {
+        html = embed_html(&mut html)?;
+    }
 
     std::fs::write(&outfile, &html)?;
     Ok(())
