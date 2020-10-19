@@ -106,7 +106,7 @@ fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
         let ss = parsing::SyntaxSet::default();
         let theme = highlighting::Theme::default();
         println!("language: {}", &caps["language"]);
-        html::highlighted_html_for_string("asdf", &ss, &ss.find_syntax_by_name(&caps["language"]).unwrap(), &theme)
+        html::highlighted_html_for_string("asdf", &ss, &ss.find_syntax_by_first_line(r#"echo Hello"#).unwrap(), &theme)
     });
         // the syntect version of a syntax highlighted code block
     Ok(String::from(result.as_ref()))
