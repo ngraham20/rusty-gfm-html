@@ -2,14 +2,15 @@ use regex::Captures;
 use std::io::Read;
 use comrak::{markdown_to_html, ComrakOptions};
 use clap::{Arg, App};
+use syntect::{html, parsing, highlighting};
 use regex::Regex;
 use std::path::Path;
 use std::ffi::OsStr;
 
 fn main() {
     match parse_args() {    
-        Ok((markdown, styles, outfile, embed_images)) => { 
-            match convert(markdown, styles, outfile, embed_images) {
+        Ok((markdown, styles, outfile, embed_images, highlight_syntax)) => { 
+            match convert(markdown, styles, outfile, embed_images, highlight_syntax) {
                 Ok(_) => {},
                 Err(message) => println!("{}", message)
             }
@@ -18,7 +19,7 @@ fn main() {
     }
 }
 
-fn parse_args() -> Result<(String, String, String, bool), std::io::Error> {
+fn parse_args() -> Result<(String, String, String, bool, bool), std::io::Error> {
 
     // get the directory of the executable
     let mut expath = std::env::current_exe()?;
@@ -48,6 +49,12 @@ fn parse_args() -> Result<(String, String, String, bool), std::io::Error> {
             .help("The styles file to use")
             .default_value(stylepath)
             .takes_value(true))
+        .arg(Arg::with_name("highlight_syntax")
+            .short("c")
+            .long("highlight_syntax")
+            .value_name("HIGHTLIGHT_SYNTAX")
+            .help("Highlight the syntax within code blocks")
+            .takes_value(false))
         .arg(Arg::with_name("embed_images")
             .short("e")
             .long("embed-images")
@@ -63,6 +70,7 @@ fn parse_args() -> Result<(String, String, String, bool), std::io::Error> {
     let styles = std::fs::read_to_string(stfile)?;
     let outfile = String::from(matches.value_of("outfile").unwrap());
     let embed_images = matches.is_present("embed_images");
+    let highlight_syntax = matches.is_present("highlight_syntax");
     
     // TODO fix error handeling
     // match (markdown, styles, outfile) {
@@ -71,7 +79,7 @@ fn parse_args() -> Result<(String, String, String, bool), std::io::Error> {
     //     (_, Err(st), _) => Err(st)
     // }
 
-    Ok((markdown, styles, outfile, embed_images))
+    Ok((markdown, styles, outfile, embed_images, highlight_syntax))
 }
 
 fn embed_html(html: &String) -> Result<String, std::io::Error> {
@@ -91,7 +99,20 @@ fn embed_html(html: &String) -> Result<String, std::io::Error> {
     Ok(String::from(result.as_ref()))
 }
 
-fn convert(markdown: String, styles: String, outfile: String, embed_images: bool) -> Result<(), std::io::Error> {
+fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
+    // Replace the code block with
+    let re = Regex::new(r#"<pre lang="(?P<language>\w+)"><code>"#).unwrap();
+    let result = re.replace_all(&html, |caps: &Captures| {
+        let ss = parsing::SyntaxSet::default();
+        let theme = highlighting::Theme::default();
+        println!("language: {}", &caps["language"]);
+        html::highlighted_html_for_string("asdf", &ss, &ss.find_syntax_by_name(&caps["language"]).unwrap(), &theme)
+    });
+        // the syntect version of a syntax highlighted code block
+    Ok(String::from(result.as_ref()))
+}
+
+fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool) -> Result<(), std::io::Error> {
 
     let header = format!("
     <html>\n
@@ -119,6 +140,10 @@ fn convert(markdown: String, styles: String, outfile: String, embed_images: bool
     
     let content = markdown_to_html(&markdown, &options);
     let mut html = header + &content + &footer;
+
+    if highlight_syntax {
+        highlight_codeblock_syntax(&mut html)?;
+    }
 
     if embed_images {
         html = embed_html(&mut html)?;
