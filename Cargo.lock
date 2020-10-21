@@ -456,6 +456,8 @@ dependencies = [
  "comrak",
  "regex",
  "syntect",
+ "titlecase",
+ "unicode-case-mapping",
 ]
 
 [[package]]
@@ -583,6 +585,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "titlecase"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f565e410cfc24c2f2a89960b023ca192689d7f77d3f8d4f4af50c2d8affe1117"
+dependencies = [
+ "lazy_static",
+ "regex",
+]
+
+[[package]]
 name = "twoway"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -615,6 +627,12 @@ name = "unchecked-index"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eeba86d422ce181a719445e51872fa30f1f7413b62becb52e95ec91aa262d85c"
+
+[[package]]
+name = "unicode-case-mapping"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4eef196f5bd4b610708991cc341c8fb92f4eb3e3dfcedfef6c2094aa5a0c3bd9"
 
 [[package]]
 name = "unicode-width"

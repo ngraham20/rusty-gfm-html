@@ -101,15 +101,27 @@ fn embed_html(html: &String) -> Result<String, std::io::Error> {
 
 fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
     // Replace the code block with
-    let re = Regex::new(r#"<pre lang="(?P<language>\w+)"><code>"#).unwrap();
+    let re = Regex::new(r#"(?ms:(?P<before><pre lang=")(?P<language>\w+)(?P<precode>"><code>)(?P<code>.*?)(?P<after></code></pre>))"#).unwrap();
     let result = re.replace_all(&html, |caps: &Captures| {
-        let ss = parsing::SyntaxSet::default();
-        let theme = highlighting::Theme::default();
-        println!("language: {}", &caps["language"]);
-        html::highlighted_html_for_string("asdf", &ss, &ss.find_syntax_by_first_line(r#"echo Hello"#).unwrap(), &theme)
+        let ps = parsing::SyntaxSet::load_defaults_newlines();
+        let ts = highlighting::ThemeSet::load_defaults();
+        let lang = titlecase::titlecase(&caps["language"]);
+        let syntax = match ps.find_syntax_by_name(&lang) {
+                Some(syntax) => syntax,
+                _ => ps.find_syntax_plain_text()
+            };
+        let theme = &ts.themes["base16-ocean.light"];
+        html::highlighted_html_for_string(&caps["code"], &ps, &syntax, &theme)
     });
         // the syntect version of a syntax highlighted code block
     Ok(String::from(result.as_ref()))
+}
+
+fn cleanup_codeblocks(html: &String) -> Result<String, std::io::Error> {
+    let re = Regex::new(r#"&amp;"#).unwrap();
+    let result = re.replace_all(&html, "&");
+
+    Ok(String::from(result))
 }
 
 fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool) -> Result<(), std::io::Error> {
@@ -130,6 +142,7 @@ fn convert(markdown: String, styles: String, outfile: String, embed_images: bool
     </html>", styles);
 
     let mut options = ComrakOptions::default();
+    options.parse.smart = true;
     options.render.github_pre_lang = true;
     options.render.unsafe_ = true;
     options.extension.strikethrough = true;
@@ -142,7 +155,8 @@ fn convert(markdown: String, styles: String, outfile: String, embed_images: bool
     let mut html = header + &content + &footer;
 
     if highlight_syntax {
-        highlight_codeblock_syntax(&mut html)?;
+        html = highlight_codeblock_syntax(&mut html)?;
+        html = cleanup_codeblocks(&mut html)?;
     }
 
     if embed_images {
