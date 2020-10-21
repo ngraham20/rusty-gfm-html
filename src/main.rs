@@ -101,7 +101,7 @@ fn embed_html(html: &String) -> Result<String, std::io::Error> {
 
 fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
     // Replace the code block with
-    let re = Regex::new(r#"(?ms:(?P<before><pre lang=")(?P<language>\w+)(?P<precode>"><code>)(?P<code>.*?)(?P<after></code></pre>))"#).unwrap();
+    let re = Regex::new(r#"(?ms:<pre lang="(?P<language>\w+)"><code>(?P<code>.*?)</code></pre>)"#).unwrap();
     let result = re.replace_all(&html, |caps: &Captures| {
         let ps = parsing::SyntaxSet::load_defaults_newlines();
         let ts = highlighting::ThemeSet::load_defaults();
