@@ -23,6 +23,7 @@ To display the program usage, open a terminal and type
 
 ```bash
 rusty-gfm-html --help
+echo second line
 ```
 
 
