@@ -9,8 +9,8 @@ use std::ffi::OsStr;
 
 fn main() {
     match parse_args() {    
-        Ok((markdown, styles, outfile, embed_images, highlight_syntax)) => { 
-            match convert(markdown, styles, outfile, embed_images, highlight_syntax) {
+        Ok((markdown, styles, outfile, embed_images, highlight_syntax, interactive)) => { 
+            match convert(markdown, styles, outfile, embed_images, highlight_syntax, interactive) {
                 Ok(_) => {},
                 Err(message) => println!("{}", message)
             }
@@ -19,7 +19,7 @@ fn main() {
     }
 }
 
-fn parse_args() -> Result<(String, String, String, bool, bool), std::io::Error> {
+fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::io::Error> {
 
     // get the directory of the executable
     let mut expath = std::env::current_exe()?;
@@ -42,6 +42,12 @@ fn parse_args() -> Result<(String, String, String, bool, bool), std::io::Error> 
             .help("output file to save the generated html to")
             .default_value("out.html")
             .takes_value(true))
+        .arg(Arg::with_name("interactive")
+            .short("i")
+            .long("interactive")
+            .value_name("INTERACTIVE")
+            .help("Allow modifications to output interactively")
+            .takes_value(false))
         .arg(Arg::with_name("styles")
             .short("s")
             .long("styles")
@@ -71,6 +77,7 @@ fn parse_args() -> Result<(String, String, String, bool, bool), std::io::Error> 
     let outfile = String::from(matches.value_of("outfile").unwrap());
     let embed_images = matches.is_present("embed_images");
     let highlight_syntax = matches.is_present("highlight_syntax");
+    let interactive = matches.is_present("interactive");
     
     // TODO fix error handeling
     // match (markdown, styles, outfile) {
@@ -79,7 +86,7 @@ fn parse_args() -> Result<(String, String, String, bool, bool), std::io::Error> 
     //     (_, Err(st), _) => Err(st)
     // }
 
-    Ok((markdown, styles, outfile, embed_images, highlight_syntax))
+    Ok((markdown, styles, outfile, embed_images, highlight_syntax, interactive))
 }
 
 fn embed_html(html: &String) -> Result<String, std::io::Error> {
@@ -99,17 +106,42 @@ fn embed_html(html: &String) -> Result<String, std::io::Error> {
     Ok(String::from(result.as_ref()))
 }
 
-fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
-    // Replace the code block with
+fn highlight_codeblock_syntax(html: &String, interactive: bool) -> Result<String, std::io::Error> {
+    // Replace the code block with syntax highlighted code
     let re = Regex::new(r#"(?ms:<pre lang="(?P<language>\w+)"><code>(?P<code>.*?)</code></pre>)"#).unwrap();
     let result = re.replace_all(&html, |caps: &Captures| {
         let ps = parsing::SyntaxSet::load_defaults_newlines();
         let ts = highlighting::ThemeSet::load_defaults();
-        let lang = titlecase::titlecase(&caps["language"]);
-        let syntax = match ps.find_syntax_by_name(&lang) {
-                Some(syntax) => syntax,
-                _ => ps.find_syntax_plain_text()
+        let lang = &caps["language"];
+        let syntax;
+        if lang != "" && &lang.to_ascii_lowercase() != "html" {
+            syntax = match ps.find_syntax_by_name(titlecase::titlecase(&lang).as_ref()) {
+                Some(syntax) => {
+                    println!("Highlighting for code block in language: {}", &lang);
+                    syntax
+                },
+                _ => if interactive {
+                    let mut filetype = String::new();
+                    println!("Failed to get syntax for code block with language: {}. What is the file extension associated with this language?", &lang);
+                    std::io::stdin().read_line(&mut filetype).expect("Failed to read user input.");
+                    filetype = String::from(filetype.trim_end());
+                    if let Some(syn) = ps.find_syntax_by_extension(&filetype) {
+                        println!("Highlighting for code block in language: {}", &filetype);
+                        syn
+                    } else { 
+                        ps.find_syntax_plain_text() }
+                } else {
+                    println!("Failed to find syntax for: {}. Skipping highlight step for this code block.", &lang);
+                    println!("Use interactive mode ( -i ) to specify codeblock languages interactively.");
+                    ps.find_syntax_plain_text() }
             };
+        }
+        else {
+            println!("HTML doesn't highlight properly due to escaped characters. Skipping highlight step for this code block.");
+            syntax = ps.find_syntax_plain_text();
+        }
+        // let syntax = ps.find_syntax_by_name("Bash").unwrap();
+        // let syntax = ps.find_syntax_by_extension("bash").unwrap();
         let theme = &ts.themes["base16-ocean.light"];
         html::highlighted_html_for_string(&caps["code"], &ps, &syntax, &theme)
     });
@@ -124,7 +156,7 @@ fn cleanup_codeblocks(html: &String) -> Result<String, std::io::Error> {
     Ok(String::from(result))
 }
 
-fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool) -> Result<(), std::io::Error> {
+fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool, interactive: bool) -> Result<(), std::io::Error> {
 
     let header = format!("
     <html>\n
@@ -155,7 +187,7 @@ fn convert(markdown: String, styles: String, outfile: String, embed_images: bool
     let mut html = header + &content + &footer;
 
     if highlight_syntax {
-        html = highlight_codeblock_syntax(&mut html)?;
+        html = highlight_codeblock_syntax(&mut html, interactive)?;
         html = cleanup_codeblocks(&mut html)?;
     }
 
