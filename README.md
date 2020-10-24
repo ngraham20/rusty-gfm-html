@@ -1,7 +1,12 @@
 # rusty-gfm-html
 A markdown rendering similar to that of Github Flavored Markdown
 
-This program simply generates an html file, containing the style sheets necessary to render as close to GFM Markdown as possible. Syntax highlighting is not currently supported.
+This program generates an html file, containing the style sheets necessary to render as close to GFM Markdown as possible.
+
+## Features
+
+### Syntax Highlighting
+**[Note]:** At the current moment, not all languages are properly supported for syntax highlighting.
 
 ## Installation
 
