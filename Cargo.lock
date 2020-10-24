@@ -455,6 +455,7 @@ dependencies = [
  "clap",
  "comrak",
  "regex",
+ "serde_json",
  "syntect",
  "titlecase",
  "unicode-case-mapping",

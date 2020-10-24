@@ -6,6 +6,7 @@ use syntect::{html, parsing, highlighting};
 use regex::Regex;
 use std::path::Path;
 use std::ffi::OsStr;
+use serde_json;
 
 fn main() {
     match parse_args() {    
@@ -156,6 +157,27 @@ fn cleanup_codeblocks(html: &String) -> Result<String, std::io::Error> {
     Ok(String::from(result))
 }
 
+fn read_config() -> serde_json::Value {
+    let mut expath = std::env::current_exe().unwrap();
+    expath.pop();
+    let filename = "config.json";
+    let filepath = format!("{}/{}", expath.to_str().unwrap(), &filename);
+    let file = std::fs::OpenOptions::new()
+    .read(true)
+    .write(true)
+    .create(true)
+    .open(&filepath).expect(&format!("Failed to open {}", &filepath));
+    let mut reader = std::io::BufReader::new(file);
+    let mut contents = String::new();
+    let num_bytes = match reader.read_to_string(&mut contents) {
+        Ok(bytes) => bytes,
+        Err(_) => 0
+    };
+    println!("Successfullly read {} bytes from {}.", num_bytes, &filename);
+
+    serde_json::from_str(&contents).unwrap()
+}
+
 fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool, interactive: bool) -> Result<(), std::io::Error> {
 
     let header = format!("
@@ -185,6 +207,9 @@ fn convert(markdown: String, styles: String, outfile: String, embed_images: bool
     
     let content = markdown_to_html(&markdown, &options);
     let mut html = header + &content + &footer;
+
+    let test = read_config();
+    println!("rust[0]: {}", test["rust"][0]);
 
     if highlight_syntax {
         html = highlight_codeblock_syntax(&mut html, interactive)?;
