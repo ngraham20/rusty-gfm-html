@@ -9,8 +9,8 @@ use std::ffi::OsStr;
 
 fn main() {
     match parse_args() {    
-        Ok((markdown, styles, outfile, embed_images, highlight_syntax, interactive)) => { 
-            match convert(markdown, styles, outfile, embed_images, highlight_syntax, interactive) {
+        Ok((markdown, styles, outfile, embed_images, highlight_syntax, interactive, smart_punctuation)) => { 
+            match convert(markdown, styles, outfile, embed_images, highlight_syntax, interactive, smart_punctuation) {
                 Ok(_) => {},
                 Err(message) => println!("{}", message)
             }
@@ -19,7 +19,7 @@ fn main() {
     }
 }
 
-fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::io::Error> {
+fn parse_args() -> Result<(String, String, String, bool, bool, bool, bool), std::io::Error> {
 
     // get the directory of the executable
     let mut expath = std::env::current_exe()?;
@@ -67,6 +67,12 @@ fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::io::E
             .value_name("EMBED_IMAGES")
             .help("Embed images directly into the output html with base64 encoding. This drastically increases the size of the document, but removes the need to distribute image assets along with it.")
             .takes_value(false))
+        .arg(Arg::with_name("smart_punctuation")
+            .short("p")
+            .long("smart_punctuation")
+            .value_name("SMART_PUNCTUATION")
+            .help("Enable smart punctuation. Warning: This will use Unicode characters, which may not render properly on all devices.")
+            .takes_value(false))
         .get_matches();
     
     // process arguments
@@ -78,6 +84,7 @@ fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::io::E
     let embed_images = matches.is_present("embed_images");
     let highlight_syntax = matches.is_present("highlight_syntax");
     let interactive = matches.is_present("interactive");
+    let smart_punctuation = matches.is_present("smart_punctuation");
     
     // TODO fix error handeling
     // match (markdown, styles, outfile) {
@@ -86,7 +93,7 @@ fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::io::E
     //     (_, Err(st), _) => Err(st)
     // }
 
-    Ok((markdown, styles, outfile, embed_images, highlight_syntax, interactive))
+    Ok((markdown, styles, outfile, embed_images, highlight_syntax, interactive, smart_punctuation))
 }
 
 fn embed_html(html: &String) -> Result<String, std::io::Error> {
@@ -156,7 +163,7 @@ fn cleanup_codeblocks(html: &String) -> Result<String, std::io::Error> {
     Ok(String::from(result))
 }
 
-fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool, interactive: bool) -> Result<(), std::io::Error> {
+fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool, interactive: bool, smart_punctuation: bool) -> Result<(), std::io::Error> {
 
     let header = format!("
     <html>\n
@@ -174,7 +181,10 @@ fn convert(markdown: String, styles: String, outfile: String, embed_images: bool
     </html>", styles);
 
     let mut options = ComrakOptions::default();
-    options.parse.smart = true;
+
+    if smart_punctuation {
+        options.parse.smart = true;
+    }
     options.render.github_pre_lang = true;
     options.render.unsafe_ = true;
     options.extension.strikethrough = true;
