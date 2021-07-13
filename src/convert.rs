@@ -28,7 +28,7 @@ fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
     let re = Regex::new(r#"(?ms:<pre lang="(?P<language>\w+)"><code>(?P<code>.*?)</code></pre>)"#).unwrap();
     let result = re.replace_all(&html, |caps: &Captures| {
         let ps = parsing::SyntaxSet::load_defaults_newlines();
-        let ts = highlighting::ThemeSet::load_defaults();
+        // let ts = highlighting::ThemeSet::load_defaults();
         let lang = &caps["language"];
         let syntax;
         if lang != "" {
@@ -42,7 +42,11 @@ fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
         else {
             syntax = ps.find_syntax_plain_text();
         }
-        let theme = &ts.themes["base16-ocean.light"];
+        let theme = match highlighting::ThemeSet::get_theme("lightowl.tmTheme") {
+            Ok(tm) => tm,
+            _ => panic!("Theme file not found")
+        };
+        // let theme = &ts.themes["base16-ocean.light"];
         html::highlighted_html_for_string(&caps["code"], &ps, &syntax, &theme)
     });
         // the syntect version of a syntax highlighted code block
