@@ -1,12 +1,13 @@
 use clap::{Arg, App};
 
 /// Parse the input arguments
-pub fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::io::Error> {
+pub fn parse_args() -> Result<(String, String, String, String, bool, bool, bool), std::io::Error> {
 
     // get the directory of the executable
     let mut expath = std::env::current_exe()?;
     expath.pop();
     let stylepath = &format!("{}/styles.css", expath.to_str().unwrap());
+    let themepath = &format!("{}/lightowl.tmTheme", expath.to_str().unwrap());
 
     // set up the application
     let matches = App::new("RUSTY-GFM-HTML")
@@ -30,6 +31,13 @@ pub fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::i
             .value_name("STYLES")
             .help("The styles file to use")
             .default_value(stylepath)
+            .takes_value(true))
+        .arg(Arg::with_name("theme")
+            .short("t")
+            .long("theme")
+            .value_name("THEME")
+            .help("The theme file to use (tmTheme)")
+            .default_value(themepath)
             .takes_value(true))
         .arg(Arg::with_name("highlight_syntax")
             .short("c")
@@ -56,6 +64,7 @@ pub fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::i
     let markdown = std::fs::read_to_string(&mdfile)?;
     let stfile = matches.value_of("styles").unwrap();
     let styles = std::fs::read_to_string(stfile)?;
+    let theme = matches.value_of("theme").unwrap();
     let outfile = String::from(matches.value_of("outfile").unwrap());
     let embed_images = matches.is_present("embed_images");
     let highlight_syntax = matches.is_present("highlight_syntax");
@@ -68,5 +77,5 @@ pub fn parse_args() -> Result<(String, String, String, bool, bool, bool), std::i
     //     (_, Err(st), _) => Err(st)
     // }
 
-    Ok((markdown, styles, outfile, embed_images, highlight_syntax, smart_punctuation))
+    Ok((markdown, styles, String::from(theme), outfile, embed_images, highlight_syntax, smart_punctuation))
 }

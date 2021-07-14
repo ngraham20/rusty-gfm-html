@@ -5,8 +5,8 @@ use convert::*;
 
 fn main() {
     match parse_args() {    
-        Ok((markdown, styles, outfile, embed_images, highlight_syntax, smart_punctuation)) => { 
-            match convert(markdown, styles, outfile, embed_images, highlight_syntax, smart_punctuation) {
+        Ok((markdown, styles, theme, outfile, embed_images, highlight_syntax, smart_punctuation)) => { 
+            match convert(markdown, styles, theme, outfile, embed_images, highlight_syntax, smart_punctuation) {
                 Ok(_) => {},
                 Err(message) => println!("{}", message)
             }

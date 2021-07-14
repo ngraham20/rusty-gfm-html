@@ -23,7 +23,7 @@ fn embed_html(html: &String) -> Result<String, std::io::Error> {
     Ok(String::from(result.as_ref()))
 }
 
-fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
+fn highlight_codeblock_syntax(html: &String, theme_path: &String) -> Result<String, std::io::Error> {
     // Replace the code block with syntax highlighted code
     let re = Regex::new(r#"(?ms:<pre lang="(?P<language>\w+)"><code>(?P<code>.*?)</code></pre>)"#).unwrap();
     let result = re.replace_all(&html, |caps: &Captures| {
@@ -42,7 +42,7 @@ fn highlight_codeblock_syntax(html: &String) -> Result<String, std::io::Error> {
         else {
             syntax = ps.find_syntax_plain_text();
         }
-        let theme = match highlighting::ThemeSet::get_theme("lightowl.tmTheme") {
+        let theme = match highlighting::ThemeSet::get_theme(&theme_path) {
             Ok(tm) => tm,
             _ => panic!("Theme file not found")
         };
@@ -59,7 +59,7 @@ fn cleanup_codeblocks(html: &String) -> Result<String, std::io::Error> {
     Ok(result)
 }
 
-pub fn convert(markdown: String, styles: String, outfile: String, embed_images: bool, highlight_syntax: bool, smart_punctuation: bool) -> Result<(), std::io::Error> {
+pub fn convert(markdown: String, styles: String, theme: String, outfile: String, embed_images: bool, highlight_syntax: bool, smart_punctuation: bool) -> Result<(), std::io::Error> {
 
     let header = format!("
     <html>\n
@@ -92,7 +92,7 @@ pub fn convert(markdown: String, styles: String, outfile: String, embed_images: 
     let mut content = markdown_to_html(&markdown, &options);
     if highlight_syntax {
         content = cleanup_codeblocks(&content)?;
-        content = highlight_codeblock_syntax(&mut content)?;
+        content = highlight_codeblock_syntax(&mut content, &theme)?;
     }
     let mut html = header + &content + &footer;
 
